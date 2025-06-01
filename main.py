@@ -22,18 +22,18 @@ def main():
     print("  - OOM kill events")
 
     high_memory_start_time = None
-    used_swap = 0
+    used_swap = None
 
     while True:
         try:
-            check_memory_usage(
+            high_memory_start_time = check_memory_usage(
                 high_memory_start_time,
                 duration=high_memory_min_duration,
                 threshold=high_memory_threshold,
             )
-            check_swap_usage(used_swap)
+            used_swap = check_swap_usage(used_swap)
             check_oom_kills()
-            time.sleep(10)  # Check every 10 seconds
+            time.sleep(10)
         except KeyboardInterrupt:
             print("Memory monitoring stopped.")
             break
@@ -49,12 +49,11 @@ def setup_logging():
     )
 
 
-def check_memory_usage(high_memory_start_time, **kwargs):
+def check_memory_usage(high_memory_start_time: float | None, **kwargs) -> float | None:
     mem = psutil.virtual_memory()
     mem_percent = mem.percent
     duration = kwargs.get("duration", 120)
     threshold = kwargs.get("threshold", 80)
-    print(f"Memory usage: {mem_percent:.1f}%")
 
     if mem_percent > threshold:
         if high_memory_start_time is None:
@@ -74,7 +73,7 @@ def check_memory_usage(high_memory_start_time, **kwargs):
     return high_memory_start_time
 
 
-def check_swap_usage(used_swap):
+def check_swap_usage(used_swap: float | None) -> float | None:
     swap = psutil.swap_memory()
     if swap.used > 0 and used_swap != swap.used:
         swap_percent = swap.percent
@@ -82,6 +81,7 @@ def check_swap_usage(used_swap):
         logging.warning(
             f"Swap memory in use: {swap.used / (1024**2):.2f} MB ({swap_percent:.1f}%)"
         )
+    return used_swap
 
 
 def check_oom_kills():
